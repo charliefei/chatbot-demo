@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+}
+
+li {
+  list-style-type: disc !important;
+  margin-left: 1.3em;
+}

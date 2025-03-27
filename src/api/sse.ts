@@ -18,6 +18,7 @@ export default (options: Options) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Accept: "text/event-stream",
     },
     body: options.body,
     signal: options.signal,
@@ -27,3 +28,8 @@ export default (options: Options) => {
     onclose: options.onclose,
   });
 };
+
+class RetriableError extends Error {}
+class FatalError extends Error {}
+
+export { RetriableError, FatalError };
