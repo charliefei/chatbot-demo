@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Input, Button, Spin } from "antd";
+import fetchEventStream from "./api/sse.ts";
 
-let url = "http://192.168.6.2:3015/ai/chat/stream/v2?query=";
+let v1 = "http://192.168.6.2:3015/ai/chat/stream?query=";
+let v2 = "http://192.168.6.2:3015/ai/chat/stream/v2?query=";
+let v3 = "http://192.168.6.2:3015/ai/chat/stream/v3";
 const { TextArea } = Input;
 
 function App() {
@@ -12,7 +15,7 @@ function App() {
   const chatHandler = () => {
     setLoading(true);
     setContent("");
-    const eventSource = new EventSource(url + encodeURIComponent(query));
+    const eventSource = new EventSource(v2 + encodeURIComponent(query));
     setQuery("");
 
     let buffer = "";
@@ -40,6 +43,42 @@ function App() {
     };
   };
 
+  const chatHandlerV3 = () => {
+    setLoading(true);
+    setContent("");
+    let buffer = "";
+    fetchEventStream({
+      url: v3,
+      body: JSON.stringify({
+        query,
+      }),
+      onmessage(ev) {
+        if (ev.event === "message") {
+          const decodedData = ev.data
+            .replace(/\\n/g, "<br/>")
+            .replace(/\\:/g, ":")
+            .replace(/&nbsp;/g, " ");
+          buffer += decodedData;
+          setContent(buffer);
+        }
+      },
+      onclose() {
+        // 最终将markdown文本转换为html展示
+        console.log("close", buffer.replace(/<br\/>/g, "\n"));
+        setQuery("");
+        setLoading(false);
+      },
+      async onopen(response) {
+        console.log("open", response.ok);
+      },
+      onerror(err) {
+        console.log("error", err);
+        setQuery("");
+        setLoading(false);
+      },
+    });
+  };
+
   return (
     <>
       <div className="p-5 h-[20vh]">
@@ -53,7 +92,7 @@ function App() {
         <Button
           loading={loading}
           className="mt-2 w-full"
-          onClick={chatHandler}
+          onClick={chatHandlerV3}
           color="cyan"
           variant="solid"
         >
