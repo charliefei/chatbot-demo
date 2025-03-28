@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Input, Button, Spin } from "antd";
 import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
 import { Marked } from "marked";
 import { markedHighlight } from "marked-highlight";
 import hljs from "highlight.js";
-import "highlight.js/styles/github.css";
+import "highlight.js/styles/github-dark.css";
 
 let v1 = "http://192.168.6.2:3015/ai/chat/stream?query=";
 let v2 = "http://192.168.6.2:3015/ai/chat/stream/v2?query=";
@@ -136,7 +136,7 @@ function App() {
 
   return (
     <>
-      <div className="p-5 h-[25vh]">
+      <div className="p-5 h-[22vh]">
         <TextArea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -144,15 +144,26 @@ function App() {
           placeholder="input your question here..."
           size="small"
         />
-        <Button
-          loading={loading}
-          className="mt-2 w-full"
-          onClick={chatHandlerV3}
-          color="cyan"
-          variant="solid"
-        >
-          Send
-        </Button>
+        <div className="mt-2 flex justify-center items-center">
+          <Button
+            loading={loading}
+            className="w-[40%]"
+            onClick={chatHandlerV3}
+            color="cyan"
+            variant="solid"
+          >
+            Send
+          </Button>
+          <Button
+            disabled={!loading}
+            className="w-[40%] ml-2"
+            onClick={() => ctrl.abort()}
+            color="cyan"
+            variant="solid"
+          >
+            Stop
+          </Button>
+        </div>
       </div>
       <hr />
       <div
