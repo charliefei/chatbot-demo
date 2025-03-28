@@ -1,15 +1,13 @@
 import { useState, useRef } from "react";
-import { Input, Button, Spin } from "antd";
+import { Input, Button, Spin, message } from "antd";
 import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
 import { Marked } from "marked";
 import { markedHighlight } from "marked-highlight";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
+import config from "../public/config.ts";
 
-let v1 = "http://192.168.6.2:3015/ai/chat/stream?query=";
-let v2 = "http://192.168.6.2:3015/ai/chat/stream/v2?query=";
-let v3 = "http://localhost:3015/ai/chat/stream/v3";
 const { TextArea } = Input;
 const ctrl = new AbortController();
 const marked = new Marked(
@@ -28,12 +26,6 @@ function App() {
   const [content, setContent] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   contentRef.current!.scrollTo({
-  //     top: document.documentElement.scrollHeight,
-  //     behavior: "smooth",
-  //   });
-  // }, [content]);
   const scrollToBottom = () => {
     contentRef.current!.scrollTop = contentRef.current!.scrollHeight;
   };
@@ -41,7 +33,9 @@ function App() {
   const chatHandler = () => {
     setLoading(true);
     setContent("");
-    const eventSource = new EventSource(v2 + encodeURIComponent(query));
+    const eventSource = new EventSource(
+      config.url.v2 + encodeURIComponent(query)
+    );
     setQuery("");
 
     let buffer = "";
@@ -74,7 +68,7 @@ function App() {
     setContent("");
     let buffer = "";
     fetchEventStream({
-      url: v3,
+      url: config.url.v3,
       signal: ctrl.signal,
       body: JSON.stringify({
         query,
@@ -86,17 +80,14 @@ function App() {
             .replace(/\\:/g, ":")
             .replace(/&nbsp;/g, " ");
           buffer += decodedData;
-          // setContent(buffer);
           setContent(marked.parse(buffer).toString());
-          scrollToBottom()
+          scrollToBottom();
         }
         if (ev.event === "end") {
-          // 最终将markdown文本转换为html展示
-          // setContent(marked.parse(buffer).toString());
           console.log("end", buffer);
           setQuery("");
           setLoading(false);
-          scrollToBottom()
+          scrollToBottom();
         }
       },
       async onopen(response) {
@@ -127,6 +118,7 @@ function App() {
         setLoading(false);
         if (err instanceof FatalError) {
           console.log("FatalError", err);
+          message.error("请求失败，请稍后重试");
           throw err;
         }
         console.log("RetriableError", err);
@@ -157,7 +149,11 @@ function App() {
           <Button
             disabled={!loading}
             className="w-[40%] ml-2"
-            onClick={() => ctrl.abort()}
+            onClick={() => {
+              ctrl.abort()
+              setLoading(false)
+              setContent(prev => prev + '\n对话终止')
+            }}
             color="cyan"
             variant="solid"
           >

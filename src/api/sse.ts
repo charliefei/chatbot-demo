@@ -26,6 +26,7 @@ export default (options: Options) => {
     onmessage: options.onmessage,
     onerror: options.onerror,
     onclose: options.onclose,
+    openWhenHidden: true,
   });
 };
 
