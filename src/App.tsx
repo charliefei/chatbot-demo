@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Input, Button, Spin, message } from "antd";
+import { Input, Button, message, Spin } from "antd";
 import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
 import { Marked } from "marked";
@@ -12,7 +12,7 @@ const { TextArea } = Input;
 const ctrl = new AbortController();
 const marked = new Marked(
   markedHighlight({
-    langPrefix: "hljs border-1 w-[50vw] rounded-lg language-",
+    langPrefix: "hljs m-2 border-1 w-[50vw] rounded-lg language-",
     highlight(code, lang) {
       const language = hljs.getLanguage(lang) ? lang : "plaintext";
       return hljs.highlight(code, { language }).value;
@@ -21,51 +21,27 @@ const marked = new Marked(
 );
 
 function App() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const [content, setContent] = useState("");
+  const [historyChatList, setHistoryChatList] = useState<
+    Array<{ msg: string; me: boolean }>
+  >([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     contentRef.current!.scrollTop = contentRef.current!.scrollHeight;
   };
 
-  const chatHandler = () => {
-    setLoading(true);
-    setContent("");
-    const eventSource = new EventSource(
-      config.url.v2 + encodeURIComponent(query)
-    );
-    setQuery("");
-
-    let buffer = "";
-
-    eventSource.onmessage = (e) => {
-      const decodedData = e.data
-        .replace(/\\n/g, "<br/>") // 还原换行符
-        .replace(/\\:/g, ":"); // 还原冒号
-
-      buffer += decodedData;
-      setContent(buffer);
-    };
-
-    eventSource.addEventListener("end", (e) => {
-      console.log("onend: ", e.data);
-      // 最终将markdown文本转换为html展示
-      eventSource.close();
-      setLoading(false);
-    });
-
-    eventSource.onerror = (e) => {
-      console.log("onerror: ", e);
-      eventSource.close();
-      setLoading(false);
-    };
-  };
-
   const chatHandlerV3 = () => {
+    if (query.trim() === "") {
+      messageApi.error("请输入问题!");
+      return;
+    }
+    setQuery("");
     setLoading(true);
-    setContent("");
+    setHistoryChatList((prev) => [...prev, { msg: query, me: true }]);
+    let index = historyChatList.length + 1;
     let buffer = "";
     fetchEventStream({
       url: config.url.v3,
@@ -75,17 +51,28 @@ function App() {
       }),
       onmessage(ev) {
         if (ev.event === "message") {
-          const decodedData = ev.data
-            .replace(/\\n/g, "\n")
-            .replace(/\\:/g, ":")
-            .replace(/&nbsp;/g, " ");
-          buffer += decodedData;
-          setContent(marked.parse(buffer).toString());
-          scrollToBottom();
+          try {
+            const decodedData = ev.data
+              .replace(/\\n/g, "\n")
+              .replace(/\\:/g, ":")
+              .replace(/&nbsp;/g, " ");
+            buffer += decodedData;
+            setHistoryChatList((prev) => {
+              const newList = [...prev];
+              newList[index] = {
+                msg: marked.parse(buffer).toString(),
+                me: false,
+              };
+              return newList;
+            });
+            scrollToBottom();
+          } catch (error) {
+            console.error("onmessage -> ", error);
+            throw new FatalError();
+          }
         }
         if (ev.event === "end") {
           console.log("end", buffer);
-          setQuery("");
           setLoading(false);
           scrollToBottom();
         }
@@ -118,7 +105,7 @@ function App() {
         setLoading(false);
         if (err instanceof FatalError) {
           console.log("FatalError", err);
-          message.error("请求失败，请稍后重试");
+          messageApi.error("请求失败，请稍后重试");
           throw err;
         }
         console.log("RetriableError", err);
@@ -128,20 +115,44 @@ function App() {
 
   return (
     <>
-      <div className="p-5 h-[22vh]">
-        <TextArea
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          rows={4}
-          placeholder="input your question here..."
-          size="small"
-        />
+      {contextHolder}
+      <div
+        ref={contentRef}
+        className="h-[70vh] m-2 p-5 border-1 rounded-lg border-slate-400 overflow-auto"
+      >
+        {historyChatList.map((item, index) => {
+          return (
+            <div key={index} className="flex flex-col">
+              {item.me ? (
+                <div className="flex justify-end items-center w-full mb-4">
+                  <div className="bg-slate-400 rounded-lg p-2">{item.msg}</div>
+                </div>
+              ) : (
+                <div className="bg-slate-300 rounded-lg p-4 mb-4">
+                  <div dangerouslySetInnerHTML={{ __html: item.msg }}></div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <hr className="text-slate-400" />
+      <div className="p-5 h-[20vh]">
+        <Spin spinning={loading}>
+          <TextArea
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            rows={4}
+            placeholder="input your question here..."
+            size="small"
+          />
+        </Spin>
         <div className="mt-2 flex justify-center items-center">
           <Button
             loading={loading}
             className="w-[40%]"
             onClick={chatHandlerV3}
-            color="cyan"
+            color="primary"
             variant="solid"
           >
             Send
@@ -150,25 +161,16 @@ function App() {
             disabled={!loading}
             className="w-[40%] ml-2"
             onClick={() => {
-              ctrl.abort()
-              setLoading(false)
-              setContent(prev => prev + '\n对话终止')
+              ctrl.abort();
+              setLoading(false);
+              messageApi.info("对话终止");
             }}
-            color="cyan"
+            color="danger"
             variant="solid"
           >
             Stop
           </Button>
         </div>
-      </div>
-      <hr />
-      <div
-        ref={contentRef}
-        className="m-2 p-5 border-1 rounded-lg border-slate-400 overflow-auto h-[70vh]"
-      >
-        <Spin spinning={loading}>
-          <div dangerouslySetInnerHTML={{ __html: content }}></div>
-        </Spin>
       </div>
     </>
   );
