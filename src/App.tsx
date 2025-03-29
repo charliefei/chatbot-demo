@@ -4,6 +4,7 @@ import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
 import { Marked } from "marked";
 import { mangle } from "marked-mangle";
+import markedKatex from "marked-katex-extension";
 import { markedHighlight } from "marked-highlight";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
@@ -24,6 +25,9 @@ marked.setOptions({
   gfm: true
 })
 marked.use(mangle());
+marked.use(markedKatex({
+  throwOnError: false
+}));
 
 function App() {
   const [messageApi, contextHolder] = message.useMessage();
