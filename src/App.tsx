@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input, Button, message, Spin } from "antd";
 import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
 import { Marked } from "marked";
+import { mangle } from "marked-mangle";
 import { markedHighlight } from "marked-highlight";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
@@ -19,6 +20,10 @@ const marked = new Marked(
     },
   })
 );
+marked.setOptions({
+  gfm: true
+})
+marked.use(mangle());
 
 function App() {
   const [messageApi, contextHolder] = message.useMessage();
@@ -30,8 +35,16 @@ function App() {
   const contentRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    contentRef.current!.scrollTop = contentRef.current!.scrollHeight;
+    if (!contentRef.current) return;
+    contentRef.current.scrollTo({
+      top: contentRef.current.scrollHeight,
+      behavior: "smooth",
+    })
   };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [historyChatList]);
 
   const chatHandlerV3 = () => {
     if (query.trim() === "") {
@@ -65,7 +78,6 @@ function App() {
               };
               return newList;
             });
-            scrollToBottom();
           } catch (error) {
             console.error("onmessage -> ", error);
             throw new FatalError();

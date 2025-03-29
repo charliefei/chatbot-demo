@@ -50,3 +50,56 @@ li {
   list-style-type: disc !important;
   margin-left: 1.3em;
 }
+
+table {
+  width: auto;
+  border-collapse: collapse;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 0.9rem;
+  color: #333;
+  background-color: #fff;
+  border-radius: 10px;
+  margin: 1rem 0 1rem 0;
+}
+
+/* 表头样式 */
+thead {
+  border-radius: 10px;
+}
+
+thead th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+/* 表体样式 */
+tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+tbody tr:last-child {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background-color: #f5f7fa;
+}
+
+tbody td {
+  padding: 12px 15px;
+  vertical-align: middle;
+}
+
+/* 斑马条纹效果 */
+tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+tbody tr:nth-child(even):hover {
+  background-color: #f0f3f7;
+}
