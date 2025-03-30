@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Input, Button, message, Spin } from "antd";
 import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
-import { Marked } from "marked";
+import { Marked, TokenizerAndRendererExtension } from "marked";
 import { mangle } from "marked-mangle";
 import markedKatex from "marked-katex-extension";
 import { markedHighlight } from "marked-highlight";
@@ -25,6 +25,48 @@ marked.setOptions({
   gfm: true
 })
 marked.use(mangle());
+// 自定义数学公式解析规则
+const mathExtensions: TokenizerAndRendererExtension[] = [
+  // 行内公式 \(...\)
+  {
+    name: 'inlineMath',
+    level: 'inline', // 行内级别
+    start(src) { return src.indexOf('\\('); }, // 检测公式起始位置
+    tokenizer(src) {
+      const match = src.match(/^\\\(((?:\\\\)*(?:\\\)|[^\\])+?)\\\)/);
+      if (match) {
+        return {
+          type: 'inlineMath',
+          raw: match[0],     // 原始字符串（如 \(E=mc^2\)）
+          text: match[1].trim() // 公式内容（去掉括号）
+        };
+      }
+    },
+    renderer(token) {
+      return `<span class="math-inline">${token.text}</span>`;
+    }
+  },
+  // 行间公式 \[...\]
+  {
+    name: 'blockMath',
+    level: 'block', // 块级
+    start(src) { return src.indexOf('\\['); },
+    tokenizer(src) {
+      const match = src.match(/^\\\[((?:\\\\)*(?:\\\]|[\s\S])+?)\\\]/);
+      if (match) {
+        return {
+          type: 'blockMath',
+          raw: match[0],     // 原始字符串（如 \[\hat{H}\psi=E\psi\]）
+          text: match[1].trim() // 公式内容
+        };
+      }
+    },
+    renderer(token) {
+      return `<div class="math-block">${token.text}</div>\n`;
+    }
+  }
+];
+marked.use({extensions: mathExtensions})
 marked.use(markedKatex({
   throwOnError: false
 }));
