@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Input, Button, message, Spin } from "antd";
 import fetchEventStream, { RetriableError, FatalError } from "./api/sse.ts";
 import { EventStreamContentType } from "@microsoft/fetch-event-source";
-import { Marked, TokenizerAndRendererExtension } from "marked";
+import { Marked } from "marked";
 import { mangle } from "marked-mangle";
 import markedKatex from "marked-katex-extension";
 import { markedHighlight } from "marked-highlight";
@@ -25,48 +25,6 @@ marked.setOptions({
   gfm: true
 })
 marked.use(mangle());
-// 自定义数学公式解析规则
-const mathExtensions: TokenizerAndRendererExtension[] = [
-  // 行内公式 \(...\)
-  {
-    name: 'inlineMath',
-    level: 'inline', // 行内级别
-    start(src) { return src.indexOf('\\('); }, // 检测公式起始位置
-    tokenizer(src) {
-      const match = src.match(/^\\\(((?:\\\\)*(?:\\\)|[^\\])+?)\\\)/);
-      if (match) {
-        return {
-          type: 'inlineMath',
-          raw: match[0],     // 原始字符串（如 \(E=mc^2\)）
-          text: match[1].trim() // 公式内容（去掉括号）
-        };
-      }
-    },
-    renderer(token) {
-      return `<span class="math-inline">${token.text}</span>`;
-    }
-  },
-  // 行间公式 \[...\]
-  {
-    name: 'blockMath',
-    level: 'block', // 块级
-    start(src) { return src.indexOf('\\['); },
-    tokenizer(src) {
-      const match = src.match(/^\\\[((?:\\\\)*(?:\\\]|[\s\S])+?)\\\]/);
-      if (match) {
-        return {
-          type: 'blockMath',
-          raw: match[0],     // 原始字符串（如 \[\hat{H}\psi=E\psi\]）
-          text: match[1].trim() // 公式内容
-        };
-      }
-    },
-    renderer(token) {
-      return `<div class="math-block">${token.text}</div>\n`;
-    }
-  }
-];
-marked.use({extensions: mathExtensions})
 marked.use(markedKatex({
   throwOnError: false
 }));
@@ -174,62 +132,64 @@ function App() {
   return (
     <>
       {contextHolder}
-      <div
-        ref={contentRef}
-        className="h-[70vh] m-2 p-5 border-1 rounded-lg border-slate-400 overflow-auto"
-      >
-        {historyChatList.map((item, index) => {
-          return (
-            <div key={index} className="flex flex-col">
-              {item.me ? (
-                <div className="flex justify-end items-center w-full mb-4">
-                  <div className="bg-slate-400 rounded-lg p-2">{item.msg}</div>
-                </div>
-              ) : (
-                <div className="bg-slate-300 rounded-lg p-4 mb-4">
-                  <div dangerouslySetInnerHTML={{ __html: item.msg }}></div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <hr className="text-slate-400" />
-      <div className="p-5 h-[20vh]">
-        <Spin spinning={loading}>
-          <TextArea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            rows={4}
-            placeholder="input your question here..."
-            size="small"
-          />
-        </Spin>
-        <div className="mt-2 flex justify-center items-center">
-          <Button
-            loading={loading}
-            className="w-[40%]"
-            onClick={chatHandlerV3}
-            color="primary"
-            variant="solid"
-          >
-            Send
-          </Button>
-          <Button
-            disabled={!loading}
-            className="w-[40%] ml-2"
-            onClick={() => {
-              ctrl.abort();
-              setLoading(false);
-              messageApi.info("对话终止");
-            }}
-            color="danger"
-            variant="solid"
-          >
-            Stop
-          </Button>
+      <main className="w-screen h-screen overflow-hidden">
+        <div
+          ref={contentRef}
+          className="h-[70%] w-full m-2 p-5 border-1 rounded-lg border-slate-400 overflow-auto"
+        >
+          {historyChatList.map((item, index) => {
+            return (
+              <div key={index} className="flex flex-col">
+                {item.me ? (
+                  <div className="flex justify-end items-center w-full mb-4">
+                    <div className="bg-slate-400 rounded-lg p-2">{item.msg}</div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-300 rounded-lg p-4 mb-4">
+                    <div dangerouslySetInnerHTML={{ __html: item.msg }}></div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+        <hr className="text-slate-400" />
+        <div className="p-5 h-[20%] w-full overflow-hidden">
+          <Spin spinning={loading}>
+            <TextArea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              rows={4}
+              placeholder="input your question here..."
+              size="small"
+            />
+          </Spin>
+          <div className="mt-2 flex justify-center items-center">
+            <Button
+              loading={loading}
+              className="w-[40%]"
+              onClick={chatHandlerV3}
+              color="primary"
+              variant="solid"
+            >
+              Send
+            </Button>
+            <Button
+              disabled={!loading}
+              className="w-[40%] ml-2"
+              onClick={() => {
+                ctrl.abort();
+                setLoading(false);
+                messageApi.info("对话终止");
+              }}
+              color="danger"
+              variant="solid"
+            >
+              Stop
+            </Button>
+          </div>
+        </div>
+      </main>
     </>
   );
 }
