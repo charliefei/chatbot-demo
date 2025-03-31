@@ -135,17 +135,17 @@ function App() {
       <main className="w-screen h-screen overflow-hidden">
         <div
           ref={contentRef}
-          className="h-[70%] w-full m-2 p-5 border-1 rounded-lg border-slate-400 overflow-auto"
+          className="h-[78%] w-full p-5 border-slate-400 overflow-auto"
         >
           {historyChatList.map((item, index) => {
             return (
               <div key={index} className="flex flex-col">
                 {item.me ? (
                   <div className="flex justify-end items-center w-full mb-4">
-                    <div className="bg-slate-400 rounded-lg p-2">{item.msg}</div>
+                    <div className="border-1 rounded-lg p-2">{item.msg}</div>
                   </div>
                 ) : (
-                  <div className="bg-slate-300 rounded-lg p-4 mb-4">
+                  <div className="border-1 rounded-lg p-4 mb-4 w-fit">
                     <div dangerouslySetInnerHTML={{ __html: item.msg }}></div>
                   </div>
                 )}
@@ -153,14 +153,14 @@ function App() {
             );
           })}
         </div>
-        <hr className="text-slate-400" />
-        <div className="p-5 h-[20%] w-full overflow-hidden">
+        <div className="p-5 h-[22%] w-full overflow-hidden">
           <Spin spinning={loading}>
             <TextArea
+              style={{padding: "10px"}}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               rows={4}
-              placeholder="input your question here..."
+              placeholder="输入你的问题"
               size="small"
             />
           </Spin>
@@ -172,7 +172,7 @@ function App() {
               color="primary"
               variant="solid"
             >
-              Send
+              发送
             </Button>
             <Button
               disabled={!loading}
@@ -185,7 +185,7 @@ function App() {
               color="danger"
               variant="solid"
             >
-              Stop
+              停止
             </Button>
           </div>
         </div>
