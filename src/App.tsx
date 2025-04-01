@@ -29,12 +29,18 @@ marked.use(markedKatex({
   throwOnError: false
 }));
 
+type ChatMsg = { 
+  content: string;
+  role: 'user' | 'assistant' | 'system';
+  me: boolean;
+}
+
 function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [historyChatList, setHistoryChatList] = useState<
-    Array<{ msg: string; me: boolean }>
+    Array<ChatMsg>
   >(localStorage.getItem("historyChatList") ? JSON.parse(localStorage.getItem("historyChatList") || "[]") : []);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +63,7 @@ function App() {
     if (!loading) {
       localStorage.setItem('historyChatList', JSON.stringify(historyChatList))
     }
-  }, [historyChatList]);
+  }, [historyChatList, loading]);
 
   const chatHandlerV3 = () => {
     if (query.trim() === "") {
@@ -66,14 +72,15 @@ function App() {
     }
     setQuery("");
     setLoading(true);
-    setHistoryChatList((prev) => [...prev, { msg: query, me: true }]);
+    setHistoryChatList((prev) => [...prev, { content: query, me: true, role: 'user' }]);
     let index = historyChatList.length + 1;
     let buffer = "";
     fetchEventStream({
-      url: config.url.v3,
+      url: config.url.v4,
       signal: ctrl.signal,
       body: JSON.stringify({
         query,
+        history: JSON.stringify(historyChatList),
       }),
       onmessage(ev) {
         if (ev.event === "message") {
@@ -86,8 +93,9 @@ function App() {
             setHistoryChatList((prev) => {
               const newList = [...prev];
               newList[index] = {
-                msg: marked.parse(buffer).toString(),
+                content: buffer,
                 me: false,
+                role: 'assistant'
               };
               return newList;
             });
@@ -151,11 +159,11 @@ function App() {
               <div key={index} className="flex flex-col">
                 {item.me ? (
                   <div className="flex justify-end items-center w-full mb-4">
-                    <div className="border-1 rounded-lg p-2">{item.msg}</div>
+                    <div className="border-1 rounded-lg p-2">{item.content}</div>
                   </div>
                 ) : (
                   <div className="border-1 rounded-lg p-4 mb-4 w-fit">
-                    <div dangerouslySetInnerHTML={{ __html: item.msg }}></div>
+                    <div dangerouslySetInnerHTML={{ __html: marked.parse(item.content).toString() }}></div>
                   </div>
                 )}
               </div>
