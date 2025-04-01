@@ -35,7 +35,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [historyChatList, setHistoryChatList] = useState<
     Array<{ msg: string; me: boolean }>
-  >([]);
+  >(localStorage.getItem("historyChatList") ? JSON.parse(localStorage.getItem("historyChatList") || "[]") : []);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -46,8 +46,17 @@ function App() {
     })
   };
 
+  const clearHistoryChat = () => {
+    setHistoryChatList([]);
+    localStorage.removeItem("historyChatList");
+    messageApi.info("清空上下文成功");
+  };
+
   useEffect(() => {
     scrollToBottom();
+    if (!loading) {
+      localStorage.setItem('historyChatList', JSON.stringify(historyChatList))
+    }
   }, [historyChatList]);
 
   const chatHandlerV3 = () => {
@@ -164,10 +173,10 @@ function App() {
               size="small"
             />
           </Spin>
-          <div className="mt-2 flex justify-center items-center">
+          <div className="mt-2 flex justify-center items-center gap-2">
             <Button
               loading={loading}
-              className="w-[40%]"
+              className="w-full flex-grow"
               onClick={chatHandlerV3}
               color="primary"
               variant="solid"
@@ -176,7 +185,7 @@ function App() {
             </Button>
             <Button
               disabled={!loading}
-              className="w-[40%] ml-2"
+              className="w-full flex-grow"
               onClick={() => {
                 ctrl.abort();
                 setLoading(false);
@@ -186,6 +195,14 @@ function App() {
               variant="solid"
             >
               停止
+            </Button>
+            <Button
+              className="w-full flex-grow"
+              onClick={clearHistoryChat}
+              color="gold"
+              variant="solid"
+            >
+              清除上下文
             </Button>
           </div>
         </div>
