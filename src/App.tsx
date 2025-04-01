@@ -14,7 +14,7 @@ const { TextArea } = Input;
 const ctrl = new AbortController();
 const marked = new Marked(
   markedHighlight({
-    langPrefix: "hljs m-2 border-1 w-[50vw] rounded-lg language-",
+    langPrefix: "hljs m-2 border-1 w-[50vw] font-(family-name:--font-roboto) rounded-lg language-",
     highlight(code, lang) {
       const language = hljs.getLanguage(lang) ? lang : "plaintext";
       return hljs.highlight(code, { language }).value;
